@@ -70,23 +70,23 @@ param['eta'] = 0.1
 num_round = 10000
 
 X_test = X_all[n_train:, :]
-xg_test = xgb.DMatrix(sparse.csr_matrix(X_test))
+xg_test = xgb.DMatrix(X_test)
 
 np.random.seed(0)
 n_fold = 5
 kf = KFold(n_train, n_folds=n_fold, shuffle=True)
 i = 0
 best_score = []
-y_pred_sum = np.zeros((X_test.shape[0], 1))
+y_pred_sum = np.zeros(X_test.shape[0])
 
 for train, val in kf:
 	i += 1
 	print(i)
 	X_train, X_val, y_train, y_val = X[train], X[val], y[train], y[val]
-	xg_train = xgb.DMatrix(sparse.csr_matrix(X_train), y_train)
-	xg_val = xgb.DMatrix(sparse.csr_matrix(X_val), y_val)
+	xg_train = xgb.DMatrix(X_train, y_train)
+	xg_val = xgb.DMatrix(X_val, y_val)
 	evallist  = [(xg_train,'train'), (xg_val,'eval')]
-	bst = xgb.train(param, xg_train, num_round, evallist, early_stopping_rounds=100)
+	bst = xgb.train(param, xg_train, num_round, evallist, early_stopping_rounds=30)
 	best_score += [bst.best_score]
 	y_pred = bst.predict(xg_test, ntree_limit=bst.best_iteration)
 	y_pred_sum = y_pred_sum+y_pred
