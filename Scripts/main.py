@@ -5,7 +5,7 @@ import xgboost as xgb
 import pandas as pd
 from sklearn.cross_validation import train_test_split
 from sklearn.preprocessing import LabelEncoder
-from sklearn.cross_validation import KFold
+from sklearn.cross_validation import StratifiedKFold
 from scipy import sparse
 
 my_dir = os.getcwd()
@@ -51,6 +51,9 @@ df_all.drop(remove, axis=1, inplace=True)
 
 df_all['saldo_var_diff'] = df_all['saldo_var30']-df_all['saldo_var42']
 
+# number of zeros
+df_all['zero_count'] = df_all.apply(lambda x: np.sum(x==0), axis=1)
+
 X_all = df_all.values
 X = X_all[:n_train, :]
 
@@ -66,6 +69,7 @@ param['silent'] = 1
 param['colsample_bytree'] = 0.8
 param['subsample'] = 0.8
 param['eta'] = 0.1
+param["max_depth"] = 5
 
 num_round = 10000
 
@@ -74,7 +78,8 @@ xg_test = xgb.DMatrix(X_test)
 
 np.random.seed(0)
 n_fold = 5
-kf = KFold(n_train, n_folds=n_fold, shuffle=True)
+# Stratified CV seems to be better
+kf = StratifiedKFold(y, n_folds=n_fold, shuffle=True)
 i = 0
 best_score = []
 y_pred_sum = np.zeros(X_test.shape[0])
