@@ -69,7 +69,7 @@ param['silent'] = 1
 param['colsample_bytree'] = 0.8
 param['subsample'] = 0.8
 param['eta'] = 0.1
-param["max_depth"] = 5
+param['max_depth'] = 5
 
 num_round = 10000
 
