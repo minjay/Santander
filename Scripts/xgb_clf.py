@@ -1,6 +1,6 @@
 import numpy as np
 import xgboost as xgb
-from sklearn.cross_validation import KFold
+from sklearn.cross_validation import StratifiedKFold
 
 class my_xgb(object):
 	'''My xgboost classifier.'''
@@ -25,11 +25,12 @@ class my_xgb(object):
 	def predict(self, X, y, X_test, stage):
 		np.random.seed(self.seed)
 		n_train = X.shape[0]
-		kf = KFold(n_train, n_folds=self.n_fold, shuffle=True)
+		kf = StratifiedKFold(y, n_folds=self.n_fold, shuffle=True)
 		param = {}
 		param['objective'] = self.obj
 		param['eval_metric'] = self.eval_metric
-		param['num_class'] = self.num_class
+		if self.num_class!=2:
+			param['num_class'] = self.num_class
 		param['nthread'] = self.nthread
 		param['silent'] = self.silent
 		param['eta'] = self.eta
@@ -43,7 +44,10 @@ class my_xgb(object):
 		num_round = 10000
 		best_score = []
 		best_iter = []
-		y_pred_sum = np.zeros((X_test.shape[0], self.num_class))
+		if self.num_class!=2:
+			y_pred_sum = np.zeros((X_test.shape[0], self.num_class))
+		else:
+			y_pred_sum = np.zeros(X_test.shape[0])
 		if stage=='base':
 			meta_feat = np.zeros((n_train+X_test.shape[0], self.num_class))
 		xg_test = xgb.DMatrix(X_test)
