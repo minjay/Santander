@@ -40,8 +40,8 @@ print('Columns with zero std')
 print(remove1)
 df_all.drop(remove1, axis=1, inplace=True)
 
-remove2 = []
 # remove identical columns
+remove2 = []
 n_col = len(df_all.columns)
 for i in range(n_col-1):
 	col1 = df_all.columns[i]
