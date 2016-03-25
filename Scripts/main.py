@@ -74,6 +74,7 @@ y_pred, score_baseline = my_xgb.predict(X, y, X_test, 'meta')
 
 # two-way interaction
 add = []
+scores = []
 n_col = len(df_all.columns)-1
 for i in range(n_col-1):
 	col1 = df_all.columns[i]
@@ -93,6 +94,7 @@ for i in range(n_col-1):
 		if score_add>score_baseline:
 			print('Adding '+col1+'-'+col2+'...')
 			add.append((col1, col2))
+			scores.append(score_add)
 		print('---------------------------------')
 
 # save
