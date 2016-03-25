@@ -58,6 +58,9 @@ df_all.drop(remove2, axis=1, inplace=True)
 
 remove = remove1+remove2
 
+# number of zeros
+df_all['zero_count'] = df_all.apply(lambda x: np.sum(x==0), axis=1)
+
 # baseline
 X_all = df_all.values
 X = X_all[:n_train, :]
@@ -71,7 +74,7 @@ y_pred, score_baseline = my_xgb.predict(X, y, X_test, 'meta')
 
 # two-way interaction
 add = []
-n_col = len(df_all.columns)
+n_col = len(df_all.columns)-1
 for i in range(n_col-1):
 	col1 = df_all.columns[i]
 	for j in range(i+1, n_col):
