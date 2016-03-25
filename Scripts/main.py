@@ -1,4 +1,5 @@
 import os
+import pickle
 import datetime
 import numpy as np
 import xgboost as xgb
@@ -7,6 +8,12 @@ from sklearn.cross_validation import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.cross_validation import StratifiedKFold
 from scipy import sparse
+
+import sys
+my_dir = os.getcwd()
+sys.path.append(my_dir+'/Santander/Scripts')
+
+import xgb_clf
 
 my_dir = os.getcwd()
 df_train = pd.read_csv(my_dir+'/Santander/Data/train.csv')
@@ -24,83 +31,67 @@ df_all = pd.concat([df_train, df_test], axis=0, ignore_index=True)
 df_all.drop('ID', axis=1, inplace=True)
 
 # remove columns with zero std
-remove = []
+remove1 = []
 for col in df_all.columns:
 	if df_all[col].std()==0:
-		remove.append(col)
+		remove1.append(col)
 
 print('Columns with zero std')
-print(remove)
-df_all.drop(remove, axis=1, inplace=True)
+print(remove1)
+df_all.drop(remove1, axis=1, inplace=True)
 
-remove = []
+remove2 = []
 # remove identical columns
 n_col = len(df_all.columns)
 for i in range(n_col-1):
 	col1 = df_all.columns[i]
-	if col1 in remove:
+	if col1 in remove2:
 		continue
 	for j in range(i+1, n_col):
 		col2 = df_all.columns[j]
 		if np.all(df_all[col1]==df_all[col2]):
-			remove.append(col2)
+			remove2.append(col2)
 
 print('Identical columns')
-print(remove)
-df_all.drop(remove, axis=1, inplace=True)
+print(remove2)
+df_all.drop(remove2, axis=1, inplace=True)
 
-df_all['saldo_var_diff'] = df_all['saldo_var30']-df_all['saldo_var42']
+remove = remove1+remove2
 
-# number of zeros
-df_all['zero_count'] = df_all.apply(lambda x: np.sum(x==0), axis=1)
-
+# baseline
 X_all = df_all.values
 X = X_all[:n_train, :]
-
-# specify parameters for xgb
-# no num_class!
-param = {}
-param['booster'] = "gbtree"
-param['objective'] = 'binary:logistic'
-param['eval_metric'] = 'auc'
-param['nthread'] = 10
-param['silent'] = 1
-
-param['colsample_bytree'] = 0.8
-param['subsample'] = 0.8
-param['eta'] = 0.1
-param['max_depth'] = 5
-
-num_round = 10000
-
 X_test = X_all[n_train:, :]
-xg_test = xgb.DMatrix(X_test)
 
-np.random.seed(0)
-n_fold = 5
-# Stratified CV seems to be better
-kf = StratifiedKFold(y, n_folds=n_fold, shuffle=True)
-i = 0
-best_score = []
-y_pred_sum = np.zeros(X_test.shape[0])
+my_xgb = xgb_clf.my_xgb(obj='binary:logistic', eval_metric='auc', num_class=2, 
+    nthread=20, silent=1, verbose_eval=50, eta=0.1, colsample_bytree=0.8, subsample=0.8, 
+    max_depth=5, max_delta_step=0, gamma=0, alpha=0, param_lambda=1, n_fold=5, seed=0)
 
-for train, val in kf:
-	i += 1
-	print(i)
-	X_train, X_val, y_train, y_val = X[train], X[val], y[train], y[val]
-	xg_train = xgb.DMatrix(X_train, y_train)
-	xg_val = xgb.DMatrix(X_val, y_val)
-	evallist  = [(xg_train,'train'), (xg_val,'eval')]
-	bst = xgb.train(param, xg_train, num_round, evallist, early_stopping_rounds=30)
-	best_score += [bst.best_score]
-	y_pred = bst.predict(xg_test, ntree_limit=bst.best_iteration)
-	y_pred_sum = y_pred_sum+y_pred
+y_pred, score_baseline = my_xgb.predict(X, y, X_test, 'meta')
 
-print(np.mean(best_score), np.std(best_score))
+# two-way interaction
+add = []
+n_col = len(df_all.columns)
+for i in range(n_col-1):
+	col1 = df_all.columns[i]
+	for j in range(i+1, n_col):
+		print('---------------------------------')
+		print('Checking '+str(i)+'-'+str(j)+'...')
+		col2 = df_all.columns[j]
+		df_all_add = pd.DataFrame(df_all)
+		df_all_add['diff'] = df_all[col1]-df_all[col2]
+		X_all = df_all_add.values
+		X = X_all[:n_train, :]
+		X_test = X_all[n_train:, :]
+		my_xgb = xgb_clf.my_xgb(obj='binary:logistic', eval_metric='auc', num_class=2, 
+    		nthread=20, silent=1, verbose_eval=False, eta=0.1, colsample_bytree=0.8, subsample=0.8, 
+    		max_depth=5, max_delta_step=0, gamma=0, alpha=0, param_lambda=1, n_fold=5, seed=0)
+		y_pred, score_add = my_xgb.predict(X, y, X_test, 'meta')
+		if score_add>score_baseline:
+			print('Adding '+col1+'-'+col2+'...')
+			add.append((col1, col2))
+		print('---------------------------------')
 
-y_pred = y_pred_sum/n_fold
-
-sub = pd.DataFrame(data={'ID':ids, 'TARGET':y_pred}, 
-	columns=['ID', 'TARGET'])
-my_dir = os.getcwd()+'/Santander/Subs/'
-sub.to_csv(my_dir+'sub.csv', index=False)
+# save
+pickle.dump(remove, open(my_dir+'/Santander/Outputs/'+'remove.p', 'wb'))
+pickle.dump(add, open(my_dir+'/Santander/Outputs/'+'add_two_way.p', 'wb'))
