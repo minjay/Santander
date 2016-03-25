@@ -34,7 +34,6 @@ class my_xgb(object):
 			param['num_class'] = self.num_class
 		param['nthread'] = self.nthread
 		param['silent'] = self.silent
-		param['verbose_eval'] = self.verbose_eval
 		param['eta'] = self.eta
 		param['colsample_bytree'] = self.colsample_bytree
 		param['subsample'] = self.subsample
@@ -63,7 +62,8 @@ class my_xgb(object):
 			evallist  = [(xg_train,'train'), (xg_val,'eval')]
 			## CV sets
 			# train
-			bst = xgb.train(param, xg_train, num_round, evallist, early_stopping_rounds=100)
+			bst = xgb.train(param, xg_train, num_round, evallist, early_stopping_rounds=100, 
+				verbose_eval=self.verbose_eval)
 			best_score += [bst.best_score]
 			best_iter += [bst.best_iteration]
 			# predict
@@ -78,7 +78,8 @@ class my_xgb(object):
 			# train
 			xg_train = xgb.DMatrix(X, y)
 			evallist  = [(xg_train,'train')]
-			bst = xgb.train(param, xg_train, int(np.mean(best_iter)), evallist)
+			bst = xgb.train(param, xg_train, int(np.mean(best_iter)), evallist, 
+				verbose_eval=self.verbose_eval)
 			# predict
 			meta_feat[n_train:, :] = bst.predict(xg_test)
 			return meta_feat
