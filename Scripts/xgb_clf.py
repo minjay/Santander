@@ -5,12 +5,13 @@ from sklearn.cross_validation import StratifiedKFold
 class my_xgb(object):
 	'''My xgboost classifier.'''
 	# init
-	def __init__(self, obj, eval_metric, num_class, nthread, silent, eta, colsample_bytree, subsample, max_depth, max_delta_step, gamma, alpha, param_lambda, n_fold, seed):
+	def __init__(self, obj, eval_metric, num_class, nthread, silent, verbose_eval, eta, colsample_bytree, subsample, max_depth, max_delta_step, gamma, alpha, param_lambda, n_fold, seed):
 		self.obj = obj
 		self.eval_metric = eval_metric
 		self.num_class = num_class
 		self.nthread = nthread
 		self.silent = silent
+		self.verbose_eval = verbose_eval
 		self.eta = eta
 		self.colsample_bytree = colsample_bytree
 		self.subsample = subsample
@@ -33,6 +34,7 @@ class my_xgb(object):
 			param['num_class'] = self.num_class
 		param['nthread'] = self.nthread
 		param['silent'] = self.silent
+		param['verbose_eval'] = self.verbose_eval
 		param['eta'] = self.eta
 		param['colsample_bytree'] = self.colsample_bytree
 		param['subsample'] = self.subsample
