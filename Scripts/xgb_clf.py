@@ -82,4 +82,4 @@ class my_xgb(object):
 			return meta_feat
 		else:
 			y_pred = y_pred_sum/self.n_fold
-			return y_pred
+			return y_pred, np.mean(best_score)
