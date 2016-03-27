@@ -88,7 +88,7 @@ for i in range(n_col-1):
 		X = X_all[:n_train, :]
 		X_test = X_all[n_train:, :]
 		my_xgb = xgb_clf.my_xgb(obj='binary:logistic', eval_metric='auc', num_class=2, 
-    		nthread=20, silent=1, verbose_eval=False, eta=0.1, colsample_bytree=0.8, subsample=0.8, 
+    		nthread=15, silent=1, verbose_eval=False, eta=0.1, colsample_bytree=0.8, subsample=0.8, 
     		max_depth=5, max_delta_step=0, gamma=0, alpha=0, param_lambda=1, n_fold=5, seed=0)
 		y_pred, score_add = my_xgb.predict(X, y, X_test, 'meta')
 		if score_add>score_baseline:
