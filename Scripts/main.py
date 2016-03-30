@@ -102,4 +102,3 @@ for i in range(n_col-1):
 pickle.dump(remove, open(my_dir+'/Santander/Outputs/'+'remove.p', 'wb'))
 pickle.dump(add, open(my_dir+'/Santander/Outputs/'+'add_two_way.p', 'wb'))
 pickle.dump(scores, open(my_dir+'/Santander/Outputs/'+'scores_two_way.p', 'wb'))
-
