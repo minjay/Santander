@@ -77,7 +77,7 @@ for i in range(n_col-1):
 	col1 = df_all.columns[i]
 	for j in range(i+1, n_col):
 		col2 = df_all.columns[j]
-		if np.corrcoef(df_all[col1], df_all[col2])[0, 1]>0.9:
+		if np.corrcoef(df_all[col1], df_all[col2])[0, 1]>0.95:
 			print('---------------------------------')
 			print('Checking '+str(i)+'-'+str(j)+'...')
 			df_all['diff'] = df_all[col1]-df_all[col2]
