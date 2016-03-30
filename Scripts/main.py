@@ -80,10 +80,9 @@ for i in range(n_col-1):
 	col1 = df_all.columns[i]
 	for j in range(i+1, n_col):
 		col2 = df_all.columns[j]
-		if np.corrcoef(df_all[col1], df_all[col2])[0, 1]>0.9:
+		if np.corrcoef(df_all[col1], df_all[col2])[0, 1]>0.5:
 			print('---------------------------------')
 			print('Checking '+str(i)+'-'+str(j)+'...')
-			col2 = df_all.columns[j]
 			df_all_add = pd.DataFrame(df_all)
 			df_all_add['diff'] = df_all[col1]-df_all[col2]
 			X_all = df_all_add.values
