@@ -58,9 +58,6 @@ df_all.drop(remove2, axis=1, inplace=True)
 
 remove = remove1+remove2
 
-# number of zeros
-df_all['zero_count'] = df_all.apply(lambda x: np.sum(x==0), axis=1)
-
 # baseline
 X_all = df_all.values
 X = X_all[:n_train, :]
@@ -80,12 +77,12 @@ for i in range(n_col-1):
 	col1 = df_all.columns[i]
 	for j in range(i+1, n_col):
 		col2 = df_all.columns[j]
-		if np.corrcoef(df_all[col1], df_all[col2])[0, 1]>0.5:
+		if np.corrcoef(df_all[col1], df_all[col2])[0, 1]>0.9:
 			print('---------------------------------')
 			print('Checking '+str(i)+'-'+str(j)+'...')
-			df_all_add = pd.DataFrame(df_all)
-			df_all_add['diff'] = df_all[col1]-df_all[col2]
-			X_all = df_all_add.values
+			df_all['diff'] = df_all[col1]-df_all[col2]
+			X_all = df_all.values
+			df_all.drop('diff', axis=1, inplace=True)
 			X = X_all[:n_train, :]
 			X_test = X_all[n_train:, :]
 			my_xgb = xgb_clf.my_xgb(obj='binary:logistic', eval_metric='auc', num_class=2, 
