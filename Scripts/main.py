@@ -56,7 +56,23 @@ print('Identical columns')
 print(remove2)
 df_all.drop(remove2, axis=1, inplace=True)
 
-remove = remove1+remove2
+# remove highly correlated columns
+remove3 = []
+n_col = len(df_all.columns)
+for i in range(n_col-1):
+	col1 = df_all.columns[i]
+	if col1 in remove3:
+		continue
+	for j in range(i+1, n_col):
+		col2 = df_all.columns[j]
+		if abs(np.corrcoef(df_all[col1], df_all[col2])[0, 1])>0.999999:
+			remove3.append(col2)
+
+print('Highly correlated columns')
+print(remove3)
+df_all.drop(remove3, axis=1, inplace=True)
+
+remove = remove1+remove2+remove3
 
 # baseline
 X_all = df_all.values
@@ -69,33 +85,5 @@ my_xgb = xgb_clf.my_xgb(obj='binary:logistic', eval_metric='auc', num_class=2,
 
 y_pred, score_baseline = my_xgb.predict(X, y, X_test, 'meta')
 
-# two-way interaction
-add = []
-scores = []
-n_col = len(df_all.columns)-1
-for i in range(n_col-1):
-	col1 = df_all.columns[i]
-	for j in range(i+1, n_col):
-		col2 = df_all.columns[j]
-		if np.corrcoef(df_all[col1], df_all[col2])[0, 1]>0.95:
-			print('---------------------------------')
-			print('Checking '+str(i)+'-'+str(j)+'...')
-			df_all['diff'] = df_all[col1]-df_all[col2]
-			X_all = df_all.values
-			df_all.drop('diff', axis=1, inplace=True)
-			X = X_all[:n_train, :]
-			X_test = X_all[n_train:, :]
-			my_xgb = xgb_clf.my_xgb(obj='binary:logistic', eval_metric='auc', num_class=2, 
-    			nthread=15, silent=1, verbose_eval=False, eta=0.1, colsample_bytree=0.8, subsample=0.8, 
-    			max_depth=5, max_delta_step=0, gamma=0, alpha=0, param_lambda=1, n_fold=5, seed=0)
-			y_pred, score_add = my_xgb.predict(X, y, X_test, 'meta')
-			if score_add>score_baseline:
-				print('Adding '+col1+'-'+col2+'...')
-				add.append((col1, col2))
-				scores.append(score_add)
-			print('---------------------------------')
-
 # save
 pickle.dump(remove, open(my_dir+'/Santander/Outputs/'+'remove.p', 'wb'))
-pickle.dump(add, open(my_dir+'/Santander/Outputs/'+'add_two_way.p', 'wb'))
-pickle.dump(scores, open(my_dir+'/Santander/Outputs/'+'scores_two_way.p', 'wb'))
