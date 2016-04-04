@@ -8,6 +8,8 @@ from sklearn.cross_validation import train_test_split
 from sklearn.preprocessing import LabelEncoder
 from sklearn.cross_validation import StratifiedKFold
 from scipy import sparse
+from sklearn.manifold import TSNE
+from statsmodels.distributions.empirical_distribution import ECDF
 
 import sys
 my_dir = os.getcwd()
@@ -34,22 +36,30 @@ remove = pickle.load(open(my_dir+'/Santander/Outputs/'+'remove.p', 'rb'))
 
 df_all.drop(remove, axis=1, inplace=True)
 
-float_cols = []
+# OHE
+cols_dum = []
+for col in df_all.columns:
+	if df_all[col].dtype==np.int64 and len(np.unique(df_all[col]))>2 and len(np.unique(df_all[col]))<=100 and np.any(np.unique(df_all[col])%3!=0):
+		print(col, len(np.unique(df_all[col])))
+		cols_dum.append(col)
+
+cols_bin = []
+for col in df_all.columns:
+	if df_all[col].dtype==np.int64 and len(np.unique(df_all[col]))==2:
+		print(col, np.unique(df_all[col]))
+		cols_bin.append(col)
+		df_all[col] -= min(df_all[col])
+		df_all[col] /= max(df_all[col])
+
+cols_float = []
 for col in df_all.columns:
 	if df_all[col].dtype==np.float64:
-		float_cols.append(col)
+		cols_float.append(col)
 
-pairs = []
-n_col = len(float_cols)
-for i in range(n_col-1):
-	col1 = float_cols[i]
-	for j in range(i+1, n_col):
-		col2 = float_cols[j]
-		if abs(np.corrcoef(df_all[col1], df_all[col2])[0, 1])>0.95:
-			pairs.append((col1, col2))
-
-for col1, col2 in pairs:
-	df_all[col1+'_'+col2+'_minus'] = df_all[col1]-df_all[col2]
+for col in cols_dum:
+	dum = pd.get_dummies(df_all[col], prefix=col, drop_first=True)
+	df_all.drop(col, axis=1, inplace=True)
+	df_all = pd.concat([df_all, dum], axis=1)
 
 X_all = df_all.values
 X = X_all[:n_train, :]
@@ -57,10 +67,10 @@ X_test = X_all[n_train:, :]
 
 scores = []
 y_pred_sum = np.zeros(X_test.shape[0])
-R = 5
+R = 1
 for r in range(R):
 	my_xgb = xgb_clf.my_xgb(obj='binary:logistic', eval_metric='auc', num_class=2, 
-	nthread=10, silent=1, verbose_eval=50, eta=0.1, colsample_bytree=0.8, subsample=0.8, 
+	nthread=10, silent=1, verbose_eval=50, eta=0.02, colsample_bytree=0.8, subsample=0.8, 
 	max_depth=5, max_delta_step=0, gamma=0, alpha=0, param_lambda=1, n_fold=5, seed=r)
 	y_pred, score = my_xgb.predict(X, y, X_test, 'meta')
 	scores.append(score)
