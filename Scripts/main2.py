@@ -1,4 +1,5 @@
 import os
+import re
 import pickle
 import datetime
 import numpy as np
@@ -32,9 +33,32 @@ df_all = pd.concat([df_train, df_test], axis=0, ignore_index=True)
 # drop ids
 df_all.drop('ID', axis=1, inplace=True)
 
-remove = pickle.load(open(my_dir+'/Santander/Outputs/'+'remove.p', 'rb'))
+def find_cols(all_col, key):
+	cols = []
+	for col in all_col:
+		if key in col:
+			cols.append(col)
+	return(cols)
 
-df_all.drop(remove, axis=1, inplace=True)
+cols_ind = find_cols(df_all.columns, 'ind')
+
+cols_red = []
+for col in cols_ind:
+	col_new = col.replace('ind', 'num')
+	if col_new in df_all.columns and np.all((df_all[col_new]>0).astype(int)==df_all[col]):
+		cols_red.append(col)
+
+df_all.drop(cols_red, axis=1, inplace=True)
+
+# remove columns with zero std
+remove1 = []
+for col in df_all.columns:
+	if df_all[col].std()==0:
+		remove1.append(col)
+
+print('Columns with zero std')
+print(remove1)
+df_all.drop(remove1, axis=1, inplace=True)
 
 # OHE
 cols_dum = []
@@ -42,6 +66,7 @@ for col in df_all.columns:
 	if df_all[col].dtype==np.int64 and len(np.unique(df_all[col]))>2 and len(np.unique(df_all[col]))<=100 and np.any(np.unique(df_all[col])%3!=0):
 		print(col, len(np.unique(df_all[col])))
 		cols_dum.append(col)
+cols_dum = ['var36']
 
 cols_bin = []
 for col in df_all.columns:
@@ -70,7 +95,7 @@ y_pred_sum = np.zeros(X_test.shape[0])
 R = 1
 for r in range(R):
 	my_xgb = xgb_clf.my_xgb(obj='binary:logistic', eval_metric='auc', num_class=2, 
-	nthread=10, silent=1, verbose_eval=50, eta=0.02, colsample_bytree=0.8, subsample=0.8, 
+	nthread=10, silent=1, verbose_eval=50, eta=0.1, colsample_bytree=0.8, subsample=0.8, 
 	max_depth=5, max_delta_step=0, gamma=0, alpha=0, param_lambda=1, n_fold=5, seed=r)
 	y_pred, score = my_xgb.predict(X, y, X_test, 'meta')
 	scores.append(score)
