@@ -115,7 +115,9 @@ for i in range(len(df_all.columns)):
 	print(col, score)
 	scores_col[col] = score
 
-sorted_col = np.array(scores_col.keys())[np.argsort(scores_col.values())[::-1]]
+keys = np.array(list(scores_col.keys()))
+sorted_ind = np.argsort(list(scores_col.values()))[::-1]
+sorted_col = keys[sorted_ind]
 
 df_all_sort = df_all[sorted_col]
 X_all = df_all_sort.values
@@ -129,7 +131,7 @@ for r in range(R):
 	my_xgb = xgb_clf.my_xgb(obj='binary:logistic', eval_metric='auc', num_class=2, 
 	nthread=10, silent=1, verbose_eval=50, eta=0.1, colsample_bytree=0.8, subsample=0.8, 
 	max_depth=5, max_delta_step=0, gamma=0, alpha=0, param_lambda=1, n_fold=5, seed=r)
-	cols = range(10)+list(np.random.choice(range(10, df_all.shape[1]), 100, False))
+	cols = list(range(10))+list(np.random.choice(range(10, df_all.shape[1]), 100, False))
 	y_pred, score = my_xgb.predict(X[:, cols], y, X_test[:, cols], 'meta')
 	scores.append(score)
 	y_pred_sum += score*y_pred
