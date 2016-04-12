@@ -117,24 +117,24 @@ for i in range(len(df_all.columns)):
 
 sorted_col = np.array(scores_col.keys())[np.argsort(scores_col.values())[::-1]]
 
-df_all = df_all[sorted_col]
-X_all = df_all.values
+df_all_sort = df_all[sorted_col]
+X_all = df_all_sort.values
 X = X_all[:n_train, :]
 X_test = X_all[n_train:, :]
 
 scores = []
 y_pred_sum = np.zeros(X_test.shape[0])
-R = 10
+R = 1000
 for r in range(R):
 	my_xgb = xgb_clf.my_xgb(obj='binary:logistic', eval_metric='auc', num_class=2, 
-	nthread=10, silent=1, verbose_eval=50, eta=0.1, colsample_bytree=1, subsample=0.8, 
-	max_depth=5, max_delta_step=0, gamma=0, alpha=0, param_lambda=1, n_fold=5, seed=0)
-	cols = np.random.choice(range(df_all.shape[1]), 150, False)
+	nthread=10, silent=1, verbose_eval=50, eta=0.1, colsample_bytree=0.8, subsample=0.8, 
+	max_depth=5, max_delta_step=0, gamma=0, alpha=0, param_lambda=1, n_fold=5, seed=r)
+	cols = range(10)+list(np.random.choice(range(10, df_all.shape[1]), 100, False))
 	y_pred, score = my_xgb.predict(X[:, cols], y, X_test[:, cols], 'meta')
 	scores.append(score)
-	y_pred_sum += y_pred
+	y_pred_sum += score*y_pred
 
-y_pred = y_pred_sum/R
+y_pred = y_pred_sum/np.sum(scores)
 
 sub = pd.DataFrame(data={'ID':ids, 'TARGET':y_pred}, 
 	columns=['ID', 'TARGET'])
