@@ -50,6 +50,10 @@ for col in cols_ind:
 
 df_all.drop(cols_red, axis=1, inplace=True)
 
+# remove columns starting with delta
+cols_delta = find_cols(df_all.columns, 'delta')
+df_all.drop(cols_delta, axis=1, inplace=True)
+
 # remove columns with zero std
 remove1 = []
 for col in df_all.columns:
@@ -60,44 +64,73 @@ print('Columns with zero std')
 print(remove1)
 df_all.drop(remove1, axis=1, inplace=True)
 
-# OHE
-cols_dum = []
-for col in df_all.columns:
-	if df_all[col].dtype==np.int64 and len(np.unique(df_all[col]))>2 and len(np.unique(df_all[col]))<=100 and np.any(np.unique(df_all[col])%3!=0):
-		print(col, len(np.unique(df_all[col])))
-		cols_dum.append(col)
-cols_dum = ['var36']
+# remove identical columns
+remove2 = []
+n_col = len(df_all.columns)
+for i in range(n_col-1):
+	col1 = df_all.columns[i]
+	if col1 in remove2:
+		continue
+	for j in range(i+1, n_col):
+		col2 = df_all.columns[j]
+		if np.all(df_all[col1]==df_all[col2]):
+			remove2.append(col2)
 
-cols_bin = []
-for col in df_all.columns:
-	if df_all[col].dtype==np.int64 and len(np.unique(df_all[col]))==2:
-		print(col, np.unique(df_all[col]))
-		cols_bin.append(col)
-		df_all[col] -= min(df_all[col])
-		df_all[col] /= max(df_all[col])
+print('Identical columns')
+print(remove2)
+df_all.drop(remove2, axis=1, inplace=True)
 
-cols_float = []
-for col in df_all.columns:
-	if df_all[col].dtype==np.float64:
-		cols_float.append(col)
+# remove highly correlated columns
+remove3 = []
+n_col = len(df_all.columns)
+for i in range(n_col-1):
+	col1 = df_all.columns[i]
+	if col1 in remove3:
+		continue
+	for j in range(i+1, n_col):
+		col2 = df_all.columns[j]
+		if abs(np.corrcoef(df_all[col1], df_all[col2])[0, 1])>0.999999:
+			remove3.append(col2)
 
-for col in cols_dum:
-	dum = pd.get_dummies(df_all[col], prefix=col, drop_first=True)
-	df_all.drop(col, axis=1, inplace=True)
-	df_all = pd.concat([df_all, dum], axis=1)
+print('Highly correlated columns')
+print(remove3)
+df_all.drop(remove3, axis=1, inplace=True)
 
+X = df_all.values
+my_xgb = xgb_clf.my_xgb(obj='binary:logistic', eval_metric='auc', num_class=2, 
+	nthread=10, silent=1, verbose_eval=50, eta=0.1, colsample_bytree=1, subsample=0.8, 
+	max_depth=5, max_delta_step=0, gamma=0, alpha=0, param_lambda=1, n_fold=5, seed=0)
+
+scores_col = {}
+for i in range(len(df_all.columns)):
+	df_all_col = df_all['saldo_medio_var5_hace2']
+	X = np.reshape(df_all_col.values, (-1, 1))
+	X_col = X[:n_train, :]
+	X_test_col = X[n_train:, :]
+	col = df_all.columns[i]
+	try:
+		y_pred, score = my_xgb.predict(X_col, y, X_test_col, 'meta')
+	except:
+		score = 0.5
+	print(col, score)
+	scores_col[col] = score
+
+sorted_col = np.array(scores_col.keys())[np.argsort(scores_col.values())[::-1]]
+
+df_all = df_all[sorted_col]
 X_all = df_all.values
 X = X_all[:n_train, :]
 X_test = X_all[n_train:, :]
 
 scores = []
 y_pred_sum = np.zeros(X_test.shape[0])
-R = 1
+R = 10
 for r in range(R):
 	my_xgb = xgb_clf.my_xgb(obj='binary:logistic', eval_metric='auc', num_class=2, 
-	nthread=10, silent=1, verbose_eval=50, eta=0.1, colsample_bytree=0.8, subsample=0.8, 
-	max_depth=5, max_delta_step=0, gamma=0, alpha=0, param_lambda=1, n_fold=5, seed=r)
-	y_pred, score = my_xgb.predict(X, y, X_test, 'meta')
+	nthread=10, silent=1, verbose_eval=50, eta=0.1, colsample_bytree=1, subsample=0.8, 
+	max_depth=5, max_delta_step=0, gamma=0, alpha=0, param_lambda=1, n_fold=5, seed=0)
+	cols = np.random.choice(range(df_all.shape[1]), 150, False)
+	y_pred, score = my_xgb.predict(X[:, cols], y, X_test[:, cols], 'meta')
 	scores.append(score)
 	y_pred_sum += y_pred
 
