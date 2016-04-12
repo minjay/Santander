@@ -103,11 +103,11 @@ my_xgb = xgb_clf.my_xgb(obj='binary:logistic', eval_metric='auc', num_class=2,
 
 scores_col = {}
 for i in range(len(df_all.columns)):
-	df_all_col = df_all['saldo_medio_var5_hace2']
+	col = df_all.columns[i]
+	df_all_col = df_all[col]
 	X = np.reshape(df_all_col.values, (-1, 1))
 	X_col = X[:n_train, :]
 	X_test_col = X[n_train:, :]
-	col = df_all.columns[i]
 	try:
 		y_pred, score = my_xgb.predict(X_col, y, X_test_col, 'meta')
 	except:
