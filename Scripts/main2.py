@@ -129,14 +129,15 @@ R = 1000
 y_pred_all = np.zeros((X_test.shape[0], R))
 for r in range(R):
 	my_xgb = xgb_clf.my_xgb(obj='binary:logistic', eval_metric='auc', num_class=2, 
-	nthread=10, silent=1, verbose_eval=50, eta=0.1, colsample_bytree=0.8, subsample=0.8, 
+	nthread=10, silent=1, verbose_eval=50, eta=0.02, colsample_bytree=0.8, subsample=0.8, 
 	max_depth=5, max_delta_step=0, gamma=0, alpha=0, param_lambda=1, n_fold=5, seed=r)
 	cols = list(range(10))+list(np.random.choice(range(15, df_all.shape[1]), 200, False))
 	y_pred, score = my_xgb.predict(X[:, cols], y, X_test[:, cols], 'meta')
 	scores.append(score)
 	y_pred_all[:, r] = y_pred
 
-y_pred = y_pred_sum/np.sum(scores)
+sel_ind = np.argsort(scores)[::-1][:100]
+y_pred = y_pred_all[:, sel_ind].sum(axis=1)/100
 
 sub = pd.DataFrame(data={'ID':ids, 'TARGET':y_pred}, 
 	columns=['ID', 'TARGET'])
