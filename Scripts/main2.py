@@ -116,30 +116,12 @@ for i in range(len(df_all.columns)):
 	scores_col[col] = score
 
 keys = np.array(list(scores_col.keys()))
+scores = np.array(list(scores_col.values()))
 sorted_ind = np.argsort(list(scores_col.values()))[::-1]
 sorted_col = keys[sorted_ind]
+sorted_scores = scores[sorted_ind]
 
-df_all_sort = df_all[sorted_col]
-X_all = df_all_sort.values
-X = X_all[:n_train, :]
-X_test = X_all[n_train:, :]
-
-scores = []
-R = 1000
-y_pred_all = np.zeros((X_test.shape[0], R))
-for r in range(R):
-	my_xgb = xgb_clf.my_xgb(obj='binary:logistic', eval_metric='logloss', num_class=2, 
-	nthread=10, silent=1, verbose_eval=50, eta=0.1, colsample_bytree=0.8, subsample=0.8, 
-	max_depth=5, max_delta_step=0, gamma=0, alpha=0, param_lambda=1, n_fold=5, seed=r)
-	cols = list(range(10))+list(np.random.choice(range(15, df_all.shape[1]), 200, False))
-	y_pred, score = my_xgb.predict(X[:, cols], y, X_test[:, cols], 'meta')
-	scores.append(score)
-	y_pred_all[:, r] = y_pred
-
-sel_ind = np.argsort(scores)[::-1][:100]
-y_pred = y_pred_all[:, sel_ind].sum(axis=1)/100
-
-sub = pd.DataFrame(data={'ID':ids, 'TARGET':y_pred}, 
-	columns=['ID', 'TARGET'])
+sub = pd.DataFrame(data={'feature':sorted_col, 'AUC':sorted_scores}, 
+	columns=['feature', 'AUC'])
 my_dir = os.getcwd()+'/Santander/Subs/'
 sub.to_csv(my_dir+'sub.csv', index=False)
