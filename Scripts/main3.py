@@ -57,9 +57,8 @@ param['max_depth'] = 5
 
 num_round = 1000
 
-scores = []
 R = 1000
-y_pred_sum = np.zeros((X_test.shape[0], 1))
+y_pred_sum = np.zeros(X_test.shape[0])
 for r in range(R):
 	cols = np.random.choice(range(X.shape[1]), 200)
 	xg_train = xgb.DMatrix(X[:, cols], y)
