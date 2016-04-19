@@ -41,7 +41,6 @@ df_all = df_all[one_way['feature']]
 X_all = df_all.values
 X = X_all[:n_train, :]
 X_test = X_all[n_train:, :]
-xg_test = xgb.DMatrix(X_test)
 
 param = {}
 param['booster'] = "gbtree"
@@ -64,6 +63,7 @@ for r in range(R):
 	xg_train = xgb.DMatrix(X[:, cols], y)
 	evallist  = [(xg_train,'train')]
 	bst = xgb.train(param, xg_train, num_round, evallist)
+	xg_test = xgb.DMatrix(X_test[:, cols])
 	y_pred = (bst.predict(xg_test)+bst.predict(xg_test, ntree_limit=900)+
 	bst.predict(xg_test, ntree_limit=800))/3
 	y_pred_sum += y_pred
